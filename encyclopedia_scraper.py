@@ -2,6 +2,8 @@ import requests
 from bs4 import BeautifulSoup
 import re
 from urllib.parse import urljoin
+import os
+import pathlib
 
 URL = 'https://runeberg.org/nf/'
 
@@ -35,7 +37,7 @@ def fetch_page_links(volume_link):
         
         def is_page_link(tag):
             if tag.name == 'a' and tag.has_attr('href'):
-                has_page_link = bool(re.search(r'\d\d\d\d.html', tag['href']))  # check if it links to a page
+                has_page_link = bool(re.search(r'\d\d\d\d.html',   tag['href']))  # check if it links to a page
                 includes_page_numbers = bool(re.search(r'\d+-\d+', tag.text))   # check that it links to relevant encyclopedia content (i.e. no preface etc...)
                 return has_page_link and includes_page_numbers
             return False
@@ -45,9 +47,25 @@ def fetch_page_links(volume_link):
         page_links = {tag['href'] for tag in soup.find_all(is_page_link)}
         return page_links
 
-
+# TODO:
+# def fetch_page_content_from_first_edition(page_link):
+#     page_url = urljoin(URL, page_link)
+#     response = requests.get(page_url)
+#     if response.status_code != 200:
+#         print(f"Failed to retrieve the webpage ({page_url}): HTTP {response.status_code}")
+#     else:
+#         soup = BeautifulSoup(response.text, 'html.parser')
 
 def main():
+    base_dir = os.path.dirname(os.path.realpath(__file__))
+    first_edition_path = f"{base_dir}\\nf_first_edition"
+    fourth_edition_path = f"{base_dir}\\nf_fourth_edition"
+    try:
+        pathlib.Path(first_edition_path).mkdir(exist_ok=False)
+        pathlib.Path(fourth_edition_path).mkdir(exist_ok=False)
+    except FileExistsError:
+        print("Directories already exist: the encyclopedia has already been fetched?")
+
     response = requests.get(URL)
     # Check if the request was successful
     if response.status_code != 200:
@@ -68,7 +86,16 @@ def main():
                 first_edition[first_ed_vol_link] = fetch_page_links(first_ed_vol_link)
             if fourth_ed_vol_link:
                 fourth_edition[fourth_ed_vol_link] = fetch_page_links(fourth_ed_vol_link)
-        # 3. 
+
+        # 3. Create local folder structure for saving encyclopedia locally
+        #    Create volume directories:
+        for vol, page_links in first_edition.items():
+            vol_dir = vol.strip('/')
+            pathlib.Path(f"{first_edition_path}\\{vol_dir}").mkdir(exist_ok=False)
+            # TODO:
+            # for link in page_links:
+            #     # Fetch the text content of each page and save locally to text file:
+            #     filename = link.strip('.html') + ".txt"
         
 
 if __name__ == "__main__":
