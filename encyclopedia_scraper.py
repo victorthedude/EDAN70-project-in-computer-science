@@ -37,7 +37,7 @@ def fetch_volume_page_links(volume_link):
         
         def is_page_link(tag):
             if tag.name == 'a' and tag.has_attr('href'):
-                has_page_link = bool(re.search(r'\d\d\d\d.html',   tag['href']))  # check if it links to a page
+                has_page_link = bool(re.search(r'\d\d\d\d.html',   tag['href']))  # check if it links to a page doc
                 includes_page_numbers = bool(re.search(r'\d+-\d+', tag.text))     # check that it links to relevant encyclopedia content (i.e. no preface etc...)
                 return has_page_link and includes_page_numbers
             return False
@@ -51,6 +51,7 @@ def fetch_volume_page_content(volume_link, page_link):
     volume_url = urljoin(URL, volume_link)
     page_url = urljoin(volume_url, page_link)
     response = requests.get(page_url)
+    response.encoding = 'utf-8'
     if response.status_code != 200:
         print(f"Failed to retrieve the webpage ({page_url}): HTTP {response.status_code}")
     else:
@@ -65,24 +66,24 @@ def fetch_volume_page_content(volume_link, page_link):
         #    End tag
         end_re = r"<<\sprev.*page\s>>"
         regex = entries_re + r".*" + start_re + content_re + end_re
-        match = re.search(regex, soup.find('p').text, re.DOTALL)
+        match = re.search(regex, soup.text, re.DOTALL)
         # 2. Extract entries and content
         entries_text = match.group(1).strip(' \n')
+        entries_text = re.sub('\s-\s', '- ', entries_text)
         content_text = match.group(2).strip(' \n')
         return entries_text, content_text
 
 def download_edition(edition_dir_path, edition_vols: dict):
     for vol_link, page_links in edition_vols.items():
         vol_dir = f"{edition_dir_path}\\{vol_link.strip('/')}"
-        # Create volume directory:
+        # Create directory for volume:
         pathlib.Path(vol_dir).mkdir(exist_ok=False)
         for page_link in page_links:
             filename = page_link.strip('.html') + ".txt"
             # Fetch the text content of each page and save locally to text files within each volume:
-            # TODO
-            # text = fetch_volume_page_content(vol_link, page_link)
-            # with open(f"{vol_dir}\\{filename}", mode='x') as f:
-            #     f.write(text)
+            entries, content = fetch_volume_page_content(vol_link, page_link)
+            with open(f"{vol_dir}\\{filename}", mode='x', encoding='utf-8') as f:
+                f.write(entries + "\n\n" + content)
 
 def main():
     base_dir = os.path.dirname(os.path.realpath(__file__))
@@ -93,6 +94,7 @@ def main():
         pathlib.Path(fourth_edition_path).mkdir(exist_ok=False)
     except FileExistsError:
         print("Directories already exist: the encyclopedia has already been fetched?")
+        return
 
     response = requests.get(URL)
     # Check if the request was successful
