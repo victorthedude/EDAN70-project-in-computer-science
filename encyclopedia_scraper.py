@@ -4,6 +4,7 @@ import re
 from urllib.parse import urljoin
 import os
 import pathlib
+from tag_subst import subst_HTML_tags
 
 URL = 'https://runeberg.org/nf/'
 
@@ -47,7 +48,7 @@ def fetch_volume_page_links(volume_link):
         page_links = {tag['href'] for tag in soup.find_all(is_page_link)}
         return page_links
 
-def fetch_volume_page_content(volume_link, page_link):
+def fetch_page_content(volume_link, page_link):
     volume_url = urljoin(URL, volume_link)
     page_url = urljoin(volume_url, page_link)
     response = requests.get(page_url)
@@ -55,23 +56,24 @@ def fetch_volume_page_content(volume_link, page_link):
     if response.status_code != 200:
         print(f"Failed to retrieve the webpage ({page_url}): HTTP {response.status_code}")
     else:
-        soup = BeautifulSoup(response.text, 'html.parser')
         # 1. Define regex strings
         #    Check for keywords listed at top of the document
-        entries_re = r"On this page \/ på denna sida\n(.*?)<<\sprev.*page\s>>"
+        entries_re = r"<b>On this page / på denna sida</b>(.*?)<p><img.*"
         #    Check for proofread statement
-        start_re = r"(?:This page has been proofread at least once.+\(historik\)|This page has never been proofread\. / Denna sida har aldrig korrekturlästs\.)"
+        start_re = r"<!-- mode=normal -->"
         #    Page content
-        content_re = r"(?:\d+\n\n.*?\n\n\d+)?(.*?)"
+        content_re = r"(.*?)"
         #    End tag
-        end_re = r"<<\sprev.*page\s>>"
-        regex = entries_re + r".*" + start_re + content_re + end_re
-        match = re.search(regex, soup.text, re.DOTALL)
+        end_re = r"<!-- NEWIMAGE2 -->"
+        regex = entries_re + start_re + content_re + end_re
+        match = re.search(regex, response.text, re.DOTALL)
         # 2. Extract entries and content
-        entries_text = match.group(1).strip(' \n')
-        entries_text = re.sub('\s-\s', '- ', entries_text)
-        content_text = match.group(2).strip(' \n')
-        return entries_text, content_text
+        entries = match.group(1).strip(' \n')
+        entries = re.sub(r'\s-\s', '- ', entries)
+        text = match.group(2)
+        text = subst_HTML_tags(text)
+        text = text.strip(' \n')
+        return entries, text
 
 def download_edition(edition_dir_path, edition_vols: dict):
     for vol_link, page_links in edition_vols.items():
@@ -81,7 +83,7 @@ def download_edition(edition_dir_path, edition_vols: dict):
         for page_link in page_links:
             filename = page_link.strip('.html') + ".txt"
             # Fetch the text content of each page and save locally to text files within each volume:
-            entries, content = fetch_volume_page_content(vol_link, page_link)
+            entries, content = fetch_page_content(vol_link, page_link)
             with open(f"{vol_dir}\\{filename}", mode='x', encoding='utf-8') as f:
                 f.write(entries + "\n\n" + content)
 

@@ -1,5 +1,8 @@
-# .txt files
+# custom ignore
 *.txt
+*.zip
+test
+uggleupplagan-main
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
