@@ -89,8 +89,8 @@ def download_edition(edition_dir_path, edition_vols: dict):
 
 def main():
     base_dir = os.path.dirname(os.path.realpath(__file__))
-    first_edition_path = f"{base_dir}\\nf_first_edition"
-    fourth_edition_path = f"{base_dir}\\nf_fourth_edition"
+    first_edition_path = f"{base_dir}\\data\\nf_first_edition"
+    fourth_edition_path = f"{base_dir}\\data\\nf_fourth_edition"
     try:
         pathlib.Path(first_edition_path).mkdir(exist_ok=False)
         pathlib.Path(fourth_edition_path).mkdir(exist_ok=False)
