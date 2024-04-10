@@ -46,7 +46,8 @@ def __html_tags_repl(m):
                     return ""
                 case 'b' | 'i': # sometimes, stylization spans several lines which regex will not otherwise detect
                     return m.group(0)
-            return subst_HTML_tags(content)
+                case _:
+                    return subst_HTML_tags(content)
 
 def __tags_repl(m):
     if m.group(0) == '<br>':   # remove HTML line breaks found at the beginning of each line
@@ -58,6 +59,8 @@ def __tags_repl(m):
     return ""
 
 def subst_HTML_tags(HTML_content):
+    if HTML_content is None:
+        return ""
     tag_pattern = r'<br>|<([^>\s]+)\s?([^>]*)>(.*?)<\/\1>|(&[^&;]*;)|<\/?([^>\s]+)>'
     return re.sub(tag_pattern, __tags_repl, HTML_content)
 
@@ -141,5 +144,4 @@ if __name__ == "__main__":
     <br>legeringar af koppar och zink, som utvalsats till
     <br>tunna blad och efter fuktning med vatten eller
     """
-
     print(subst_HTML_tags(test))
