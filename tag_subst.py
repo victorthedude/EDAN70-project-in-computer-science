@@ -26,7 +26,7 @@ def __html_tags_repl(m):
     match tag:
         case 'b' | 'i': 
             return f"<{tag}>{subst_HTML_tags(content)}</{tag}>" # preserve tags
-        case 'sup' | 'sub' | 'small' | 'span': #  'span class="sp"'
+        case 'sup' | 'sub' | 'small' | 'span':
             return subst_HTML_tags(content) # remove tags, keep text
         case 'table':
             tag_attr = m.group(2)

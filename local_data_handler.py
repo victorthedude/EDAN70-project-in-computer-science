@@ -10,7 +10,18 @@ def get_pages_of_volume(volume_path):
     pages = [f.path for f in os.scandir(volume_path) if f.is_file()]
     return pages
 
-def get_page_content(page_path):
+def get_raw_page_content(page_path):
     with open(page_path, 'r', encoding='utf-8-sig') as f: # utf-8-sig automatically handles any UTF-8 BOM's at the beginning of files
         content = f.read()
     return content
+
+def get_page_index_and_content(page_path):
+    index = []
+    with open(page_path, 'r', encoding='utf-8-sig') as f: # utf-8-sig automatically handles any UTF-8 BOM's at the beginning of files
+        line = f.readline()
+        while line.startswith('- '):
+            entry = line.strip('\n- ')
+            index.append(entry)
+            line = f.readline()
+        content = f.read()
+    return index, content
