@@ -1,10 +1,7 @@
 from local_data_handler import *
 import re
-from difflib import SequenceMatcher
+from Levenshtein import ratio as levenshtein_ratio
 import json
-
-def similar(a, b): # string similarity scoring
-        return SequenceMatcher(None, a, b).ratio()
 
 def get_headword_from_bold(string):
     # Check if string contains <b> tag
@@ -17,18 +14,19 @@ def check_italics_tag(string):
     return
 
 def get_headword_from_index(text, index):
-    # text = remove_tags(text)
+    text = remove_tags(text)
     scores = [0 for i in range(len(index))]
     for i, headword in enumerate(index):
-        # if text.startswith(headword):
-        if headword in text:
+        if headword in [word.strip(' ,.') for word in text.split(' ')[:3]]:
+            # print(f"'found {headword}' in: {[word.strip(' ,.') for word in text.split(' ')]}")
             return headword, scores
-        sim_score = similar(headword, remove_tags(text)[:len(headword)]) # very small character differences can still remain
+        sim_score = levenshtein_ratio(headword, remove_tags(text)[:len(headword)]) # very small character differences can still remain
         if sim_score > 0.9:                                              # after regex substituion. check similarity and assign  
             return headword, scores                                      # directly if VERY similar.
         else:
             scores[i] = sim_score
 
+    # print(f"No match found for '{text}' in index, scores: {[scores]}")
     return None, scores
 
 def remove_tags(string):
@@ -51,7 +49,7 @@ def extract_headword(text, index):
     best_score = 0
     for i in range(len(sim_scores)):
         score = sim_scores[i]
-        if score > 0.8 and score > best_score:
+        if score >= 0.8 and score > best_score:
             best_score = score
             headword = index[i]
     # OBS: prune tags from text when doing similarity scoring
@@ -61,6 +59,7 @@ def extract_entries_from_page(page_path, current_entry_nbr, volume_nbr, edition)
     index, content = get_page_index_and_content(page_path)
     entries = []
     paragraphs = [paragraph.strip('\n') for paragraph in content.split('\n\n')]
+    # print(index)
     for paragraph in paragraphs:
         if not paragraph: # some documents can include more newlines than usual which results in "empty" paragarphs
             continue
@@ -86,6 +85,9 @@ def extract_entries_from_page(page_path, current_entry_nbr, volume_nbr, edition)
         entry["text"] = text.replace('\n', ' ') # replace newlines with space
         entries.append(entry)
         current_entry_nbr += 1
+
+        text = text.replace('\n', ' ')
+        # print(f"'{headword}' for '{text}' ")
 
     return entries, current_entry_nbr
 
