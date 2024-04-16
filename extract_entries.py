@@ -13,21 +13,50 @@ def get_headword_from_bold(string):
 def check_italics_tag(string):
     return
 
-def get_headword_from_index(text, index):
+def get_headword_from_index(text: str, index: list[str]):
     text = remove_tags(text)
-    scores = [0 for i in range(len(index))]
+    for headword in index:
+        headword_count = len(headword.split(' '))
+        headword = headword.strip(' ,.')
+        first_words = [word.strip(' ,.') for word in re.sub("\s+"," ",text).split(' ')[:2+headword_count]]
+        if headword_count > 1: # If headword  consists of more than one word:
+            for i in range(0,len(first_words)-headword_count):
+                # if i+headword_count > len(headword_count):
+                #     break
+                comp_word = " ".join(first_words[i:i+headword_count])
+                if headword == comp_word:
+                    return headword
+        else:
+            if headword in first_words:
+              return headword
+    return None
+
+def get_headword_by_score(text, index):
+    # "normalize" text by removing spaces and punctuation:
+    text = re.sub(r"[.,'\s]", "", remove_tags(text))
+
+    scores = [0 for _ in range(len(index))]
     for i, headword in enumerate(index):
-        if headword in [word.strip(' ,.') for word in text.split(' ')[:3]]:
-            # print(f"'found {headword}' in: {[word.strip(' ,.') for word in text.split(' ')]}")
-            return headword, scores
-        sim_score = levenshtein_ratio(headword, remove_tags(text)[:len(headword)]) # very small character differences can still remain
-        if sim_score > 0.9:                                              # after regex substituion. check similarity and assign  
-            return headword, scores                                      # directly if VERY similar.
+        # "normalize" headword:
+        headword = re.sub(r"[.,'\s]", "", headword)
+        sim_score = levenshtein_ratio(headword, text[:len(headword)]) 
+        if sim_score == 1:
+            print(f"Found '{headword}' for '{text}' with {sim_score}")
+            return headword
         else:
             scores[i] = sim_score
 
-    # print(f"No match found for '{text}' in index, scores: {[scores]}")
-    return None, scores
+    headword = None
+    best_score = 0
+    # If nothing else; go for highest reasonable (>=0.8) similarity score:
+    for i in range(len(scores)):
+        score = scores[i]
+        if score >= 0.8 and score > best_score:
+            best_score = score
+            headword = index[i]
+            print(f"Found '{headword}' for '{text}' with {best_score}")
+    # if headword:
+    return headword
 
 def remove_tags(string):
     return re.sub(r'<\/?[^>]+>|\[[^\]]+\]', '', string) # removes ALL tags + phonetics fluff?.
@@ -40,18 +69,15 @@ def extract_headword(text, index):
     headword = get_headword_from_bold(first_line)
     if headword:
         return headword
-    
     # 2. Then check index:
-    headword, sim_scores = get_headword_from_index(first_line, index)
+    headword = get_headword_from_index(first_line, index)
     if headword:
         return headword
-    # 3. If nothing else; go for highest reasonable (>0.8) similarity score:
-    best_score = 0
-    for i in range(len(sim_scores)):
-        score = sim_scores[i]
-        if score >= 0.8 and score > best_score:
-            best_score = score
-            headword = index[i]
+    # 3. Then use string similarity scoring:
+    headword = get_headword_by_score(first_line, index)
+    if headword:
+        return headword
+
     # OBS: prune tags from text when doing similarity scoring
     return headword
 
@@ -59,7 +85,7 @@ def extract_entries_from_page(page_path, current_entry_nbr, volume_nbr, edition)
     index, content = get_page_index_and_content(page_path)
     entries = []
     paragraphs = [paragraph.strip('\n') for paragraph in content.split('\n\n')]
-    # print(index)
+    print(f"INDEX: {index}")
     for paragraph in paragraphs:
         if not paragraph: # some documents can include more newlines than usual which results in "empty" paragarphs
             continue
