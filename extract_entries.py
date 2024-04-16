@@ -11,7 +11,7 @@ def get_headword_from_bold(string):
     match = re.search(r'<b>(.+)<\/b>', string)
     if match is None:
         return None
-    return match.group(1).strip(' ,')
+    return match.group(1).strip(' ,.')
 
 def check_italics_tag(string):
     return
@@ -38,12 +38,13 @@ def extract_headword(text, index):
     first_line = re.search(r'^(.+)\n?', text).group(1)
 
     # To assign a certain paragraph/text to an entry:
-    # 1. First check index:
-    headword, sim_scores = get_headword_from_index(first_line, index)
+    # 1. First check for bold tag:
+    headword = get_headword_from_bold(first_line)
     if headword:
         return headword
-    # 2. Then check for bold tag:
-    headword = get_headword_from_bold(first_line)
+    
+    # 2. Then check index:
+    headword, sim_scores = get_headword_from_index(first_line, index)
     if headword:
         return headword
     # 3. If nothing else; go for highest reasonable (>0.8) similarity score:
@@ -72,11 +73,13 @@ def extract_entries_from_page(page_path, current_entry_nbr, volume_nbr, edition)
         }
         text = paragraph[:208] # limit to 200 + 8 characters per entry, 
         # 200 chars approx. equals 4-5 lines in a paragraph => 4-5 \n chars => +8 characters to account for newline chars.
-        text = re.sub(r'\.[^.]+$', '', text) # remove everything after the last period ?
+        
+        # Check if there is more than one period, if so: remove fluff after the last period
+        if text.count('.') > 1:
+            text = re.sub(r'\.[^.]+$', '', text) # remove everything after the last period ?
 
-        first_line = re.search(r'^(.+)\n?', text).group(1)
-        headword = extract_headword(first_line, index)
-        if headword is None: # if no headword could be found, skip paragraph
+        headword = extract_headword(text, index)
+        if headword is None: # if no headword could be found, skip paragraph (?)
             continue
         entry["headword"] = headword
         entry["entryId"] = f"e{edition}_v{volume_nbr}_{current_entry_nbr}"
