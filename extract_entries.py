@@ -1,5 +1,5 @@
 from local_data_handler import *
-import re
+import regex as re
 from Levenshtein import ratio as levenshtein_ratio
 import json
 
@@ -31,36 +31,42 @@ def get_headword_from_index(text: str, index: list[str]):
               return headword
     return None
 
+def normalize_text(text):
+    return re.sub(r"[.,' \t]", "", text)
+
 def get_headword_by_score(text, index):
     # "normalize" text by removing spaces and punctuation:
-    text = re.sub(r"[.,'\s]", "", remove_tags(text))
+    text = normalize_text(remove_tags(text))
 
     scores = [0 for _ in range(len(index))]
     headword_candidates = []
     for i, headword in enumerate(index):
-        # "normalize" headword:
-        headword_norm = re.sub(r"[.,'\s]", "", headword)
+        # "normalize" headword for comparison:
+        headword_norm = normalize_text(headword)
         sim_score = levenshtein_ratio(headword_norm, text[:len(headword_norm)]) 
         if len(headword) > 1 and sim_score >= (len(headword_norm)-1) / len(headword_norm): # one char error/edit ratio
-            # print(f"Found '{headword}' for '{text}' with {sim_score}")
+            print(f"Found '{headword}' for '{text}' with {sim_score}")
             headword_candidates.append(headword)
         else:
             scores[i] = sim_score
     if headword_candidates:
         # heuristic: if we find multiple headword candidates, choose the longest headword.
         best = max(headword_candidates, key=len)
-        # print(f"  Chose '{best}' for '{text}'")
+        print(f"  Chose '{best}' for '{text}'")
         return best
 
     headword = None
     best_score = 0
-    # If nothing else; go for highest reasonable (>=0.6) similarity score:
+    # If nothing else; go for highest reasonable similarity score:
     for i in range(len(scores)):
         score = scores[i]
-        if score >= 0.6 and score > best_score: # '0.6' is usually considered "close enough"
+        if score >= 0.7 and score > best_score: # '0.6' is usually considered "close enough"
             best_score = score
             headword = index[i]
-            # print(f"Found '{headword}' for '{text}' with {best_score}")
+            print(f"Found '{headword}' for '{text}' with {best_score}")
+
+    if headword is not None:
+        print(f"  Chose '{headword}' for '{text}'")
 
     return headword
 
@@ -86,11 +92,49 @@ def extract_headword(text, index):
 
     return headword
 
+def extract_family_member(text, family_members):
+    first_line = re.search(r'^(.+)\n?', text).group(1)
+    first_line_norm = normalize_text(first_line).lower()
+    for member in family_members:
+        # first_ed_pat = r""
+        fourth_ed_pat = r".+,[ \t](\d+\.)[ \t](.+)"
+        match = re.search(fourth_ed_pat, member)
+        digit = match.group(1).strip(" .,")
+        if digit in first_line_norm:
+            name_norm = re.sub(r"[ \t]", "", match.group(2)).lower()
+            # print(name_norm)
+            # print(first_line_norm)
+            if name_norm in first_line_norm:
+                print(f"Found '{member}' for {first_line}")
+                return member
+    return None
+
+
+NAME = r"(?:\(?\p{Lu}\p{Ll}*\)?[ \t]?)"
+PARTICLE = r"(?:\(?\p{Lu}?\p{Ll}*\)?[ \t]?)"
+FIRST_ED_PATTERN = rf"^\d+\.[ \t]{NAME}{PARTICLE}*,[ \t]{NAME}{PARTICLE}*$"
+FOURTH_ED_PATTERN = rf"{NAME}{PARTICLE}*,[ \t]\d+\.[ \t]{NAME}{PARTICLE}*"
+FAMILY_MEMBER_PATTERN = re.compile(FIRST_ED_PATTERN + r"|" + FOURTH_ED_PATTERN)
+def find_members_of_family(index):
+    matches = []
+    for headword in index:
+        match = re.search(FAMILY_MEMBER_PATTERN, headword)
+        if match:
+            matches.append(match.group(0))
+    # if matches:
+    #     print(matches)
+    return matches
+
 def extract_entries_from_page(page_path, current_entry_nbr, volume_nbr, edition):
     index, content = get_page_index_and_content(page_path)
+    paragraphs = [paragraph.strip('\n') for paragraph in content.split('\n\n') if paragraph]
+    members_of_family = find_members_of_family(index)
+    print(f"Extracting entries from: {page_path}")
+    print(f"INDEX: {index}")
+    print(f"MEMBERS: {members_of_family}")
+
     entries = []
-    paragraphs = [paragraph.strip('\n') for paragraph in content.split('\n\n')]
-    # print(f"INDEX: {index}")
+    headwords_assigned = []
     for paragraph in paragraphs:
         if not paragraph: # some documents can include more newlines than usual which results in "empty" paragarphs
             continue
@@ -109,8 +153,12 @@ def extract_entries_from_page(page_path, current_entry_nbr, volume_nbr, edition)
             text = re.sub(r'\.[^.]+$', '', text) # remove everything after the last period ?
 
         headword = extract_headword(text, index)
+        if headword is None:
+            headword = extract_family_member(text, members_of_family)
+
         if headword is None: # if no headword could be found, skip paragraph (?)
             continue
+        headwords_assigned.append(headword)
         entry["headword"] = headword
         entry["entryId"] = f"e{edition}_v{volume_nbr}_{current_entry_nbr}"
         entry["text"] = text.replace('\n', ' ') # replace newlines with space
@@ -118,6 +166,10 @@ def extract_entries_from_page(page_path, current_entry_nbr, volume_nbr, edition)
         current_entry_nbr += 1
 
         text = text.replace('\n', ' ')
+
+    missed = set(index[1:]) - set(headwords_assigned)
+    if missed:
+        print(f"MISSED: {missed}")
 
     return entries, current_entry_nbr
 
@@ -132,12 +184,17 @@ if __name__ == '__main__':
     # test = f'{FOURTH_ED}\\nffr\\0019.txt' # Richert family (4th ed)
     # test = f'{FIRST_ED}\\nffa\\0059.txt' # Adelswärd family (4th ed)
 
-    test = f'{FIRST_ED}\\nfaa\\1385.txt'
+    # test = f'{FIRST_ED}\\nfaa\\1385.txt' # B.
+    # test = f'{FOURTH_ED}\\nffi\\0512.txt' # Hammarskjöld
+    # test = f'{FOURTH_ED}\\nffa\\0586.txt' # Astor
+    test = f'{FOURTH_ED}\\nffc\\0430.txt'
 
     entries, _ = extract_entries_from_page(test, 1, 1, 1)
     with open("sample.json", "w", encoding='utf-8') as outfile: 
-        json.dump(entries, outfile, ensure_ascii=False)
+        json.dump(entries, outfile, ensure_ascii=False, indent=2)
     
+    ###############################
+
     # all_entries_of_vol = []
     # entry_nbr = 1
     # i = 0
