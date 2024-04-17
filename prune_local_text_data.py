@@ -18,25 +18,25 @@ def check_subwords(headword, text):
             word = word.strip(" ,.")
             if len(word) > 1:
                 word = re.escape(word)
-                pattern = rf"^\d+\s+[^\d\n]*?\b{word}\b[^\d\n]*?\s+\d+$"
+                pattern = rf"^\d+\s+[^\d\s]*?\b{word}\b[^\d\s]*?\s+\d+$"
                 match = re.search(pattern, text, flags=re.MULTILINE)
                 if match is not None:
                     return match.group(0)
     return None
 
-def find_header_singleline(text, index):
-    first_word = index[0]
-    last_word = index[-1]
+def find_header_singleline(text, index, first_index=0, last_index=-1):
+    first_word = index[first_index]
+    last_word = index[last_index]
     if first_word != last_word:
         re_first = re.escape(first_word)
         re_last = re.escape(last_word)
-        first_opt = rf"^\d+\s+.*?(?:{re_first})?.*?{re_last}.*?\s+\d+$"
-        last_opt = rf"^\d+\s+.*?{re_first}.*?(?:{re_last})?.*?\s+\d+$"
+        first_opt = rf"^\d+\s+.*?(?:\b{re_first}\b)?.*?\b{re_last}\b.*?\s+\d+$"
+        last_opt = rf"^\d+\s+.*?\b{re_first}\b.*?(?:\b{re_last}\b)?.*?\s+\d+$"
         pattern = first_opt + r"|" + last_opt
         match = re.search(pattern, text, flags=re.MULTILINE)
     else:
         re_word = re.escape(first_word)
-        pattern = rf"^\d+\s+.*?{re_word}.*?\s+\d+$"
+        pattern = rf"^\d+\s+.*?\b{re_word}\b.*?\s+\d+$"
         match = re.search(pattern, text, flags=re.MULTILINE)
     
     # Some headwords have extra words that are not included in the header
@@ -59,6 +59,10 @@ def search_text_file(file_path): # Check results, before removing
     content = get_page_raw_content(file_path)
 
     header = find_header_singleline(content, index)
+    if len(index) > 1 and not header:
+        # headwords can stretch to an additional page and be included first in the index
+        # while the header however will not include it in the page title
+        header = find_header_singleline(content, index, 1, -2)
 
     if header:
         print(f"In {file_path}:")
@@ -87,10 +91,11 @@ def prune_edition_manually(edition):
             ask_prune = input("Prune? (y/n/cancel): ").lower()
             while ask_prune != 'y' or ask_prune != 'n' or ask_prune != 'cancel':
                 if ask_prune == 'y':
-                    print(f"PRUNING: {vol_dir}")
                     for file, rm_string in seach_results.items():
+                        print(f"PRUNING: '{rm_string}' from {file}...")
                         prune_text_file(file, rm_string)
                     seach_results.clear()
+                    break
                 elif ask_prune == 'n':
                     seach_results.clear()
                     break
@@ -101,5 +106,5 @@ def prune_edition_manually(edition):
                     ask_prune = input("Prune? (y/n/cancel): ").lower()
 
 if __name__ == '__main__':
-    prune_edition_manually(FIRST_ED)
-    # prune_edition_manually(FOURTH_ED)
+    # prune_edition_manually(FIRST_ED)
+    prune_edition_manually(FOURTH_ED)
