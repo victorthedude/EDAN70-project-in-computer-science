@@ -100,15 +100,11 @@ def prune_text_file(file_path, remove):
 def prune_edition_manually(edition):
     seach_results = {}
     for vol_dir in get_volumes(edition):
-        # i = 0
-        # print(f"{vol_dir}")
         for page in get_pages_of_volume(vol_dir):
             # print(f"SEARCHING IN: {page}")
             found = search_text_file(page)
-            # if i % 20 == 0:
             # if found:
             #     seach_results[page] = found
-            # i += 1
         # break
         # ask_prune = input("Prune? (y/n/cancel): ").lower()
         # if seach_results:
@@ -130,5 +126,5 @@ def prune_edition_manually(edition):
         #             ask_prune = input("Prune? (y/n/cancel): ").lower()
 
 if __name__ == '__main__':
-    # prune_edition_manually(FIRST_ED)
-    prune_edition_manually(FOURTH_ED)
+    prune_edition_manually(FIRST_ED)
+    # prune_edition_manually(FOURTH_ED)

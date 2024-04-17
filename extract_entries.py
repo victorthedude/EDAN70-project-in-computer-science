@@ -8,32 +8,37 @@ def get_headword_from_bold(string):
     match = re.search(r'<b>(.+)<\/b>', string)
     if match is None:
         return None
+    # print(f"(BOLD) Found '{match.group(1).strip(' ,.')}' from '{string}'")
     return match.group(1).strip(' ,.')
 
 def check_italics_tag(string):
     return
 
+HEADWORD_OFFSET = 1
 def get_headword_from_index(text: str, index: list[str]):
     text = remove_tags(text)
     for headword in index:
         headword_count = len(headword.split(' '))
         headword = headword.strip(' ,.')
-        first_words = [word.strip(' ,.') for word in re.sub("\s+"," ",text).split(' ')[:2+headword_count]]
+        first_words = [word.strip(' ,.') for word in re.sub("\s+"," ",text).split(' ')[:HEADWORD_OFFSET+headword_count]]
         if headword_count > 1: # If headword consists of more than one word:
             for i in range(0,len(first_words)-headword_count):
                 # if i+headword_count > len(headword_count):
                 #     break
                 comp_word = " ".join(first_words[i:i+headword_count])
                 if headword == comp_word:
+                    # print(f"(INDEX) Found '{headword}'")
                     return headword
         else:
             if headword in first_words:
+            #   print(f"(INDEX) Found '{headword}' in {first_words}")
               return headword
     return None
 
 def normalize_text(text):
     return re.sub(r"[.,' \t]", "", text)
 
+MIN_SCORE_THRESHOLD = 0.7
 def get_headword_by_score(text, index):
     # "normalize" text by removing spaces and punctuation:
     text = normalize_text(remove_tags(text))
@@ -44,15 +49,17 @@ def get_headword_by_score(text, index):
         # "normalize" headword for comparison:
         headword_norm = normalize_text(headword)
         sim_score = levenshtein_ratio(headword_norm, text[:len(headword_norm)]) 
-        if len(headword) > 1 and sim_score >= (len(headword_norm)-1) / len(headword_norm): # one char error/edit ratio
-            print(f"Found '{headword}' for '{text}' with {sim_score}")
+        if len(headword) > 1 and sim_score == 1:
+            return headword
+        elif len(headword) > 1 and sim_score >= (len(headword_norm)-1) / len(headword_norm): # one char error/edit ratio
+            # print(f"(SCORE) Found '{headword}' for '{text}' with {sim_score}")
             headword_candidates.append(headword)
         else:
             scores[i] = sim_score
     if headword_candidates:
         # heuristic: if we find multiple headword candidates, choose the longest headword.
         best = max(headword_candidates, key=len)
-        print(f"  Chose '{best}' for '{text}'")
+        # print(f"(SCORE)   Chose '{best}' for '{text}'")
         return best
 
     headword = None
@@ -60,17 +67,17 @@ def get_headword_by_score(text, index):
     # If nothing else; go for highest reasonable similarity score:
     for i in range(len(scores)):
         score = scores[i]
-        if score >= 0.7 and score > best_score: # '0.6' is usually considered "close enough"
+        if score >= MIN_SCORE_THRESHOLD and score > best_score: # '0.6' is usually considered "close enough"
             best_score = score
             headword = index[i]
-            print(f"Found '{headword}' for '{text}' with {best_score}")
+            # print(f"(SCORE) Found '{headword}' for '{text}' with {best_score}")
 
-    if headword is not None:
-        print(f"  Chose '{headword}' for '{text}'")
+    # if headword is not None:
+        # print(f"(SCORE)   Chose '{headword}' for '{text}'")
 
     return headword
 
-def remove_tags(string):
+def remove_tags(string): # remove parenthesis+content within parenthesis as well?
     return re.sub(r'<\/?[^>]+>|\[[^\]]+\]', '', string) # removes ALL tags + phonetics fluff?.
 
 def extract_headword(text, index):
@@ -92,21 +99,42 @@ def extract_headword(text, index):
 
     return headword
 
+MIN_MEMBER_SCORE_THRESHOLD = 0.7
 def extract_family_member(text, family_members):
     first_line = re.search(r'^(.+)\n?', text).group(1)
     first_line_norm = normalize_text(first_line).lower()
+    
+    first_ed_index_pat = r"(\d+\.)[ \t].+,(.+)"
+    fourth_ed_index_pat = r".+,[ \t](\d+\.)[ \t](.+)"
+    index_pat = re.compile(first_ed_index_pat + r"|" + fourth_ed_index_pat)
+    first_ed_text_pat = r"(\d+\.)[ \t].+,(.+)"
+    fourth_ed_text_pat = r"\d+\)(.+)"
+    text_pat = re.compile(first_ed_text_pat + r"|" + fourth_ed_text_pat)
+
+    candidates = []
     for member in family_members:
-        # first_ed_pat = r""
-        fourth_ed_pat = r".+,[ \t](\d+\.)[ \t](.+)"
-        match = re.search(fourth_ed_pat, member)
+        match = re.search(index_pat, member)
         digit = match.group(1).strip(" .,")
-        if digit in first_line_norm:
+        if digit in first_line_norm[:len(match.group(2))]:
             name_norm = re.sub(r"[ \t]", "", match.group(2)).lower()
-            # print(name_norm)
-            # print(first_line_norm)
             if name_norm in first_line_norm:
-                print(f"Found '{member}' for {first_line}")
+                # print(f"(MEMBER)   Chose '{member}' for '{first_line}'")
                 return member
+            else:
+                match_line = re.search(text_pat, first_line_norm)
+                if match_line is None: # safety net; in case a non-person paragraph makes it this far
+                    break
+                name_in_text = match_line.group(1)
+                score = levenshtein_ratio(name_norm, name_in_text[:len(name_norm)])
+                if score >= MIN_MEMBER_SCORE_THRESHOLD:
+                    # print(f"(MEMBER) Found '{member}' for '{first_line}' with {score}")
+                    candidates.append( (member, score) )
+
+    if candidates:
+        member, score = max(candidates, key=lambda x: x[1])
+        # print(f"(MEMBER)   Chose '{member}' for '{first_line}' with {score}")
+        return member
+    
     return None
 
 
@@ -129,9 +157,9 @@ def extract_entries_from_page(page_path, current_entry_nbr, volume_nbr, edition)
     index, content = get_page_index_and_content(page_path)
     paragraphs = [paragraph.strip('\n') for paragraph in content.split('\n\n') if paragraph]
     members_of_family = find_members_of_family(index)
-    print(f"Extracting entries from: {page_path}")
-    print(f"INDEX: {index}")
-    print(f"MEMBERS: {members_of_family}")
+    # print(f"Extracting entries from: {page_path}")
+    # print(f"INDEX: {index}")
+    # print(f"MEMBERS: {members_of_family}")
 
     entries = []
     headwords_assigned = []
@@ -154,7 +182,8 @@ def extract_entries_from_page(page_path, current_entry_nbr, volume_nbr, edition)
 
         headword = extract_headword(text, index)
         if headword is None:
-            headword = extract_family_member(text, members_of_family)
+            if members_of_family:
+                headword = extract_family_member(text, members_of_family)
 
         if headword is None: # if no headword could be found, skip paragraph (?)
             continue
@@ -169,44 +198,47 @@ def extract_entries_from_page(page_path, current_entry_nbr, volume_nbr, edition)
 
     missed = set(index[1:]) - set(headwords_assigned)
     if missed:
-        print(f"MISSED: {missed}")
+        print(f"({page_path}) MISSED: {missed}")
 
     return entries, current_entry_nbr
 
 if __name__ == '__main__':
-    test_1 = 'data\\nf_first_edition\\nfaf\\0745.txt'  # missing index, but has bold tags
-    test_2 = 'data\\nf_fourth_edition\\nffp\\0015.txt' # complete index but different spelling/format of headwords in index and in text, no bold tags
-    test_3 = 'data\\nf_first_edition\\nfaa\\0024.txt'  # straight-forward; complete index + bold tags
-    test_4 = 'data\\nf_first_edition\\nfaa\\1299.txt'  # complete index but has a bunch of character errors in text. no bold-tags.
+    # test_1 = 'data\\nf_first_edition\\nfaf\\0745.txt'  # missing index, but has bold tags
+    # test_2 = 'data\\nf_fourth_edition\\nffp\\0015.txt' # complete index but different spelling/format of headwords in index and in text, no bold tags
+    # test_3 = 'data\\nf_first_edition\\nfaa\\0024.txt'  # straight-forward; complete index + bold tags
+    # test_4 = 'data\\nf_first_edition\\nfaa\\1299.txt'  # complete index but has a bunch of character errors in text. no bold-tags.
 
-    # test = f'{FIRST_ED}\\nfaa\\0693.txt' # Anckarsvärd family (1st ed)
+    # test = f'{FIRST_ED}\\nfaa\\0693.txt' # Anckarsvärd family (1st ed), no paragraph separation
+    # test = f'{FIRST_ED}\\nfaa\\0697.txt' # Anckarsvärd family (1st ed)
     # test = f'{FIRST_ED}\\nfaj\\0017.txt' # Lode family (1st ed)
-    # test = f'{FOURTH_ED}\\nffr\\0019.txt' # Richert family (4th ed)
-    # test = f'{FIRST_ED}\\nffa\\0059.txt' # Adelswärd family (4th ed)
 
-    # test = f'{FIRST_ED}\\nfaa\\1385.txt' # B.
+    # test = f'{FOURTH_ED}\\nffr\\0019.txt' # Richert family (4th ed)
+    # test = f'{FOURTH_ED}\\nffa\\0059.txt' # Adelswärd family (4th ed)
     # test = f'{FOURTH_ED}\\nffi\\0512.txt' # Hammarskjöld
     # test = f'{FOURTH_ED}\\nffa\\0586.txt' # Astor
-    test = f'{FOURTH_ED}\\nffc\\0430.txt'
+    # test = f'{FOURTH_ED}\\nffc\\0582.txt' # Brun
+    # test = f'{FOURTH_ED}\\nffc\\0430.txt' # Brahe
 
-    entries, _ = extract_entries_from_page(test, 1, 1, 1)
-    with open("sample.json", "w", encoding='utf-8') as outfile: 
-        json.dump(entries, outfile, ensure_ascii=False, indent=2)
+    # entries, _ = extract_entries_from_page(test, 1, 1, 1)
+    # with open("sample.json", "w", encoding='utf-8') as outfile: 
+    #     json.dump(entries, outfile, ensure_ascii=False, indent=2)
     
     ###############################
 
-    # all_entries_of_vol = []
-    # entry_nbr = 1
-    # i = 0
-    # for vol_nbr, volume_path in enumerate(get_volumes(FIRST_ED), start=1):
-    #     if i == 1:
-    #         break
-    #     for page_path in get_pages_of_volume(volume_path):
-    #         entries, entry_nbr = extract_entries_from_page(page_path, entry_nbr, vol_nbr, 1)
-    #         all_entries_of_vol += entries
+    all_entries_of_vol = []
+    entry_nbr = 1
+    i = 0
+    for vol_nbr, volume_path in enumerate(get_volumes(FIRST_ED), start=1):
+        if i == 1:
+            break
+        for page_path in get_pages_of_volume(volume_path):
+            entries, entry_nbr = extract_entries_from_page(page_path, entry_nbr, vol_nbr, 1)
+            all_entries_of_vol += entries
 
-    #     volume = volume_path.split('\\')[-1]
-    #     with open(f"data/json/first_ed/{volume}.json", "w", encoding='utf-8') as outfile: 
-    #         json.dump(all_entries_of_vol, outfile, ensure_ascii=False)
-    #     i += 1
-    #     all_entries_of_vol.clear()
+        volume = volume_path.split('\\')[-1]
+        with open(f"data/json/first_ed/{volume}.json", "w", encoding='utf-8') as outfile: 
+            json.dump(all_entries_of_vol, outfile, ensure_ascii=False, indent=2)
+        i += 1
+        tot_entries = len(all_entries_of_vol)
+        all_entries_of_vol.clear()
+    print(f"TOTAL AMOUNT OF ENTRIES CREATED: {tot_entries}")
