@@ -41,7 +41,7 @@ def get_headword_by_score(text, index):
         # "normalize" headword:
         headword_norm = re.sub(r"[.,'\s]", "", headword)
         sim_score = levenshtein_ratio(headword_norm, text[:len(headword_norm)]) 
-        if sim_score >= (len(headword_norm)-1) / len(headword_norm): # one char error/edit ratio
+        if len(headword) > 1 and sim_score >= (len(headword_norm)-1) / len(headword_norm): # one char error/edit ratio
             # print(f"Found '{headword}' for '{text}' with {sim_score}")
             headword_candidates.append(headword)
         else:
@@ -122,33 +122,34 @@ def extract_entries_from_page(page_path, current_entry_nbr, volume_nbr, edition)
     return entries, current_entry_nbr
 
 if __name__ == '__main__':
-    # test_1 = 'data\\nf_first_edition\\nfaf\\0745.txt'  # missing index, but has bold tags
-    # test_2 = 'data\\nf_fourth_edition\\nffp\\0015.txt' # complete index but different spelling/format of headwords in index and in text, no bold tags
-    # test_3 = 'data\\nf_first_edition\\nfaa\\0024.txt'  # straight-forward; complete index + bold tags
-    # test_4 = 'data\\nf_first_edition\\nfaa\\1299.txt'  # complete index but has a bunch of character errors in text. no bold-tags.
+    test_1 = 'data\\nf_first_edition\\nfaf\\0745.txt'  # missing index, but has bold tags
+    test_2 = 'data\\nf_fourth_edition\\nffp\\0015.txt' # complete index but different spelling/format of headwords in index and in text, no bold tags
+    test_3 = 'data\\nf_first_edition\\nfaa\\0024.txt'  # straight-forward; complete index + bold tags
+    test_4 = 'data\\nf_first_edition\\nfaa\\1299.txt'  # complete index but has a bunch of character errors in text. no bold-tags.
 
-    # # test = f'{FIRST_ED}\\nfaa\\1523.txt' # Bank
-    # # test = f'{FOURTH_ED}\\nffa\\0165.txt'
-    # test = f'{FOURTH_ED}\\nffr\\0019.txt' # Richert family (4th ed)
     # test = f'{FIRST_ED}\\nfaa\\0693.txt' # Anckarsvärd family (1st ed)
+    # test = f'{FIRST_ED}\\nfaj\\0017.txt' # Lode family (1st ed)
+    # test = f'{FOURTH_ED}\\nffr\\0019.txt' # Richert family (4th ed)
+    # test = f'{FIRST_ED}\\nffa\\0059.txt' # Adelswärd family (4th ed)
 
-    # entries, _ = extract_entries_from_page(test, 1, 1, 1)
-    # with open("sample.json", "w", encoding='utf-8') as outfile: 
-    #     json.dump(entries, outfile, ensure_ascii=False)
+    test = f'{FIRST_ED}\\nfaa\\1385.txt'
+
+    entries, _ = extract_entries_from_page(test, 1, 1, 1)
+    with open("sample.json", "w", encoding='utf-8') as outfile: 
+        json.dump(entries, outfile, ensure_ascii=False)
     
-    all_entries_of_vol = []
-    entry_nbr = 1
-    i = 0
-    for vol_nbr, volume_path in enumerate(get_volumes(FIRST_ED), start=1):
-        if i == 1:
-            break
-        for page_path in get_pages_of_volume(volume_path):
-            entries, entry_nbr = extract_entries_from_page(page_path, entry_nbr, vol_nbr, 1)
-            all_entries_of_vol += entries
+    # all_entries_of_vol = []
+    # entry_nbr = 1
+    # i = 0
+    # for vol_nbr, volume_path in enumerate(get_volumes(FIRST_ED), start=1):
+    #     if i == 1:
+    #         break
+    #     for page_path in get_pages_of_volume(volume_path):
+    #         entries, entry_nbr = extract_entries_from_page(page_path, entry_nbr, vol_nbr, 1)
+    #         all_entries_of_vol += entries
 
-        volume = volume_path.split('\\')[-1]
-        with open(f"data/json/first_ed/{volume}.json", "w", encoding='utf-8') as outfile: 
-            json.dump(all_entries_of_vol, outfile, ensure_ascii=False)
-        i += 1
-        all_entries_of_vol.clear()
-    print(all_entries_of_vol)
+    #     volume = volume_path.split('\\')[-1]
+    #     with open(f"data/json/first_ed/{volume}.json", "w", encoding='utf-8') as outfile: 
+    #         json.dump(all_entries_of_vol, outfile, ensure_ascii=False)
+    #     i += 1
+    #     all_entries_of_vol.clear()
