@@ -2,6 +2,7 @@ from local_data_handler import *
 import regex as re
 from Levenshtein import ratio as levenshtein_ratio
 import json
+import sys
 
 def get_headword_from_bold(string):
     # Check if string contains <b> tag
@@ -99,33 +100,40 @@ def extract_headword(text, index):
 
     return headword
 
+
 MIN_MEMBER_SCORE_THRESHOLD = 0.7
 def extract_family_member(text, family_members):
     first_line = re.search(r'^(.+)\n?', text).group(1)
     first_line_norm = normalize_text(first_line).lower()
     
-    first_ed_index_pat = r"(\d+\.)[ \t].+,(.+)"
-    fourth_ed_index_pat = r".+,[ \t](\d+\.)[ \t](.+)"
-    index_pat = re.compile(first_ed_index_pat + r"|" + fourth_ed_index_pat)
-    first_ed_text_pat = r"(\d+\.)[ \t].+,(.+)"
+    first_ed_index_pat = r"(\d+)\.[ \t].+,(.+)"
+    fourth_ed_index_pat = r".+,[ \t](\d+)\.[ \t](.+)"
+    # index_pat = re.compile(first_ed_index_pat + r"|" + fourth_ed_index_pat)
+    first_ed_text_pat = r"\d+\.[ \t].+,(.+)"
     fourth_ed_text_pat = r"\d+\)(.+)"
-    text_pat = re.compile(first_ed_text_pat + r"|" + fourth_ed_text_pat)
+    # text_pat = re.compile(first_ed_text_pat + r"|" + fourth_ed_text_pat)
 
     candidates = []
     for member in family_members:
-        match = re.search(index_pat, member)
-        digit = match.group(1).strip(" .,")
-        if digit in first_line_norm[:len(match.group(2))]:
-            name_norm = re.sub(r"[ \t]", "", match.group(2)).lower()
-            if name_norm in first_line_norm:
+        index_member_match = re.search(first_ed_index_pat, member)
+        if index_member_match is None:
+            index_member_match = re.search(fourth_ed_index_pat, member)
+        digit = index_member_match.group(1)
+        first_name = index_member_match.group(2)
+        if digit in first_line_norm[:len(first_name)]:
+            first_name_norm = re.sub(r"[ \t]", "", first_name).lower()
+            if first_name_norm in first_line_norm:
                 # print(f"(MEMBER)   Chose '{member}' for '{first_line}'")
                 return member
             else:
-                match_line = re.search(text_pat, first_line_norm)
-                if match_line is None: # safety net; in case a non-person paragraph makes it this far
+                line_match = re.search(first_ed_text_pat, first_line_norm)
+                if line_match is None:
+                    line_match = re.search(fourth_ed_text_pat, first_line_norm)
+                if line_match is None: # safety net; in case a non-person paragraph makes it this far
                     break
-                name_in_text = match_line.group(1)
-                score = levenshtein_ratio(name_norm, name_in_text[:len(name_norm)])
+
+                name_in_text = line_match.group(1)
+                score = levenshtein_ratio(first_name_norm, name_in_text[:len(first_name_norm)])
                 if score >= MIN_MEMBER_SCORE_THRESHOLD:
                     # print(f"(MEMBER) Found '{member}' for '{first_line}' with {score}")
                     candidates.append( (member, score) )
@@ -162,7 +170,7 @@ def extract_entries_from_page(page_path, current_entry_nbr, volume_nbr, edition)
     # print(f"MEMBERS: {members_of_family}")
 
     entries = []
-    headwords_assigned = []
+    # headwords_assigned = []
     for paragraph in paragraphs:
         if not paragraph: # some documents can include more newlines than usual which results in "empty" paragarphs
             continue
@@ -187,7 +195,7 @@ def extract_entries_from_page(page_path, current_entry_nbr, volume_nbr, edition)
 
         if headword is None: # if no headword could be found, skip paragraph (?)
             continue
-        headwords_assigned.append(headword)
+        # headwords_assigned.append(headword)
         entry["headword"] = headword
         entry["entryId"] = f"e{edition}_v{volume_nbr}_{current_entry_nbr}"
         entry["text"] = text.replace('\n', ' ') # replace newlines with space
@@ -196,9 +204,9 @@ def extract_entries_from_page(page_path, current_entry_nbr, volume_nbr, edition)
 
         text = text.replace('\n', ' ')
 
-    missed = set(index[1:]) - set(headwords_assigned)
-    if missed:
-        print(f"({page_path}) MISSED: {missed}")
+    # missed = set(index[1:]) - set(headwords_assigned)
+    # if missed:
+        # print(f"({page_path}) MISSED: {missed}")
 
     return entries, current_entry_nbr
 
@@ -219,6 +227,9 @@ if __name__ == '__main__':
     # test = f'{FOURTH_ED}\\nffc\\0582.txt' # Brun
     # test = f'{FOURTH_ED}\\nffc\\0430.txt' # Brahe
 
+    # test = "data\\nf_first_edition\\nfac\\0327.txt"
+
+    # print(f"Extracting entries from: {test}")
     # entries, _ = extract_entries_from_page(test, 1, 1, 1)
     # with open("sample.json", "w", encoding='utf-8') as outfile: 
     #     json.dump(entries, outfile, ensure_ascii=False, indent=2)
@@ -227,18 +238,17 @@ if __name__ == '__main__':
 
     all_entries_of_vol = []
     entry_nbr = 1
-    i = 0
     for vol_nbr, volume_path in enumerate(get_volumes(FIRST_ED), start=1):
-        if i == 1:
-            break
-        for page_path in get_pages_of_volume(volume_path):
-            entries, entry_nbr = extract_entries_from_page(page_path, entry_nbr, vol_nbr, 1)
-            all_entries_of_vol += entries
+        try:
+            for page_path in get_pages_of_volume(volume_path):
+                entries, entry_nbr = extract_entries_from_page(page_path, entry_nbr, vol_nbr, 1)
+                all_entries_of_vol += entries
 
-        volume = volume_path.split('\\')[-1]
-        with open(f"data/json/first_ed/{volume}.json", "w", encoding='utf-8') as outfile: 
-            json.dump(all_entries_of_vol, outfile, ensure_ascii=False, indent=2)
-        i += 1
-        tot_entries = len(all_entries_of_vol)
-        all_entries_of_vol.clear()
-    print(f"TOTAL AMOUNT OF ENTRIES CREATED: {tot_entries}")
+            volume = volume_path.split('\\')[-1]
+            with open(f"data/json/first_ed/{volume}.json", "w", encoding='utf-8') as outfile: 
+                json.dump(all_entries_of_vol, outfile, ensure_ascii=False, indent=2)
+            tot_entries = len(all_entries_of_vol)
+            print(f"TOTAL AMOUNT OF ENTRIES CREATED: {tot_entries}")
+            all_entries_of_vol.clear()
+        except:
+            sys.exit(f"Encountered error in: {page_path}")
