@@ -1,7 +1,10 @@
 # custom ignore
 *.txt
 *.zip
+test*.py
 test
+test_data
+*sample.json
 uggleupplagan-main
 
 # Byte-compiled / optimized / DLL files
