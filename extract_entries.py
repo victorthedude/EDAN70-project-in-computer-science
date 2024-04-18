@@ -15,25 +15,35 @@ def get_headword_from_bold(string):
 def check_italics_tag(string):
     return
 
+def split_even(text) -> list[str]:
+    res = re.sub("\s+", " ", text)
+    res = list(filter(bool, [word.strip(' ,.') for word in res.split(' ')]))
+    return res
+
 HEADWORD_OFFSET = 1
 def get_headword_from_index(text: str, index: list[str]):
     text = remove_tags(text)
+    candidates = []
+    words = split_even(text)
     for headword in index:
         headword_count = len(headword.split(' '))
         headword = headword.strip(' ,.')
-        first_words = [word.strip(' ,.') for word in re.sub("\s+"," ",text).split(' ')[:HEADWORD_OFFSET+headword_count]]
+        first_words = words[:HEADWORD_OFFSET+headword_count]
         if headword_count > 1: # If headword consists of more than one word:
             for i in range(0,len(first_words)-headword_count):
-                # if i+headword_count > len(headword_count):
-                #     break
-                comp_word = " ".join(first_words[i:i+headword_count])
-                if headword == comp_word:
-                    # print(f"(INDEX) Found '{headword}'")
-                    return headword
+                comp_words = first_words[i:i+headword_count]
+                if split_even(headword) == comp_words:
+                    # print(f"(INDEX) Found '{headword}' in {first_words}")
+                    candidates.append(headword)
         else:
             if headword in first_words:
-            #   print(f"(INDEX) Found '{headword}' in {first_words}")
-              return headword
+                # print(f"(INDEX) Found '{headword}' in {first_words}")
+                candidates.append(headword)
+    if candidates:
+        longest = max(candidates, key=len)
+        # print(f"(INDEX)     Chose '{longest}' for {text}")
+        return longest
+
     return None
 
 def normalize_text(text):
@@ -45,21 +55,21 @@ def get_headword_by_score(text, index):
     text = normalize_text(remove_tags(text))
 
     scores = [0 for _ in range(len(index))]
-    headword_candidates = []
+    candidates = []
     for i, headword in enumerate(index):
         # "normalize" headword for comparison:
         headword_norm = normalize_text(headword)
         sim_score = levenshtein_ratio(headword_norm, text[:len(headword_norm)]) 
         if len(headword) > 1 and sim_score >= (len(headword_norm)-1) / len(headword_norm): # one char error/edit ratio
             # print(f"(SCORE) Found '{headword}' for '{text}' with {sim_score}")
-            headword_candidates.append(headword)
+            candidates.append(headword)
         else:
             scores[i] = sim_score
-    if headword_candidates:
+    if candidates:
         # heuristic: if we find multiple headword candidates, choose the longest headword.
-        best = max(headword_candidates, key=len)
-        # print(f"(SCORE)   Chose '{best}' for '{text}'")
-        return best
+        longest = max(candidates, key=len)
+        # print(f"(SCORE)   Chose '{longest}' for '{text}'")
+        return longest
 
     headword = None
     best_score = 0
@@ -168,7 +178,6 @@ def extract_entries_from_page(page_path, current_entry_nbr, volume_nbr, edition)
     # print(f"MEMBERS: {members_of_family}")
 
     entries = []
-    # headwords_assigned = []
     for paragraph in paragraphs:
         if not paragraph: # some documents can include more newlines than usual which results in "empty" paragarphs
             continue
@@ -192,8 +201,10 @@ def extract_entries_from_page(page_path, current_entry_nbr, volume_nbr, edition)
                 headword = extract_family_member(text, members_of_family)
 
         if headword is None: # if no headword could be found, skip paragraph (?)
+            # missed.append(paragraph[:50])
             continue
-        # headwords_assigned.append(headword)
+
+
         entry["headword"] = headword
         entry["entryId"] = f"e{edition}_v{volume_nbr}_{current_entry_nbr}"
         entry["text"] = text.replace('\n', ' ') # replace newlines with space
@@ -204,7 +215,9 @@ def extract_entries_from_page(page_path, current_entry_nbr, volume_nbr, edition)
 
     # missed = set(index[1:]) - set(headwords_assigned)
     # if missed:
-        # print(f"({page_path}) MISSED: {missed}")
+    #     print(f"({page_path})")
+    #     print(f"INDEX:  {index}")
+    #     print(f"MISSED:\n{missed}")
 
     return entries, current_entry_nbr
 
