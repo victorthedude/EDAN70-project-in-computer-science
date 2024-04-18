@@ -50,9 +50,7 @@ def get_headword_by_score(text, index):
         # "normalize" headword for comparison:
         headword_norm = normalize_text(headword)
         sim_score = levenshtein_ratio(headword_norm, text[:len(headword_norm)]) 
-        if len(headword) > 1 and sim_score == 1:
-            return headword
-        elif len(headword) > 1 and sim_score >= (len(headword_norm)-1) / len(headword_norm): # one char error/edit ratio
+        if len(headword) > 1 and sim_score >= (len(headword_norm)-1) / len(headword_norm): # one char error/edit ratio
             # print(f"(SCORE) Found '{headword}' for '{text}' with {sim_score}")
             headword_candidates.append(headword)
         else:
