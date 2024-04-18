@@ -177,6 +177,7 @@ def extract_entries_from_page(page_path, current_entry_nbr, volume_nbr, edition)
     # print(f"INDEX: {index}")
     # print(f"MEMBERS: {members_of_family}")
 
+    # missed = []
     entries = []
     for paragraph in paragraphs:
         if not paragraph: # some documents can include more newlines than usual which results in "empty" paragarphs
@@ -213,7 +214,6 @@ def extract_entries_from_page(page_path, current_entry_nbr, volume_nbr, edition)
 
         text = text.replace('\n', ' ')
 
-    # missed = set(index[1:]) - set(headwords_assigned)
     # if missed:
     #     print(f"({page_path})")
     #     print(f"INDEX:  {index}")
@@ -222,23 +222,31 @@ def extract_entries_from_page(page_path, current_entry_nbr, volume_nbr, edition)
     return entries, current_entry_nbr
 
 if __name__ == '__main__':
-    # test_1 = 'data\\nf_first_edition\\nfaf\\0745.txt'  # missing index, but has bold tags
-    # test_2 = 'data\\nf_fourth_edition\\nffp\\0015.txt' # complete index but different spelling/format of headwords in index and in text, no bold tags
-    # test_3 = 'data\\nf_first_edition\\nfaa\\0024.txt'  # straight-forward; complete index + bold tags
-    # test_4 = 'data\\nf_first_edition\\nfaa\\1299.txt'  # complete index but has a bunch of character errors in text. no bold-tags.
+    # test = 'data\\nf_first_edition\\nfaf\\0745.txt'  # missing index, but has bold tags
+    # test = 'data\\nf_fourth_edition\\nffp\\0015.txt' # complete index but different spelling/format of headwords in index and in text, no bold tags
+    # test = 'data\\nf_first_edition\\nfaa\\0024.txt'  # straight-forward; complete index + bold tags
+    # test = 'data\\nf_first_edition\\nfaa\\1299.txt'  # complete index but has a bunch of character errors in text. no bold-tags.
 
     # test = f'{FIRST_ED}\\nfaa\\0693.txt' # Anckarsvärd family (1st ed), no paragraph separation
     # test = f'{FIRST_ED}\\nfaa\\0697.txt' # Anckarsvärd family (1st ed)
     # test = f'{FIRST_ED}\\nfaj\\0017.txt' # Lode family (1st ed)
 
-    # test = f'{FOURTH_ED}\\nffr\\0019.txt' # Richert family (4th ed)
-    # test = f'{FOURTH_ED}\\nffa\\0059.txt' # Adelswärd family (4th ed)
+    # test = f'{FOURTH_ED}\\nffr\\0019.txt' # Richert family
+    # test = f'{FOURTH_ED}\\nffa\\0059.txt' # Adelswärd family
     # test = f'{FOURTH_ED}\\nffi\\0512.txt' # Hammarskjöld
     # test = f'{FOURTH_ED}\\nffa\\0586.txt' # Astor
     # test = f'{FOURTH_ED}\\nffc\\0582.txt' # Brun
     # test = f'{FOURTH_ED}\\nffc\\0430.txt' # Brahe
 
     # test = "data\\nf_first_edition\\nfac\\0327.txt"
+
+    # https://runeberg.org/nffp/0454.html # "Paget Violet"
+    # test = "data\\nf_fourth_edition\\nffp\\0454.txt"
+    # https://runeberg.org/nffs/0235.html # "SKODA JOSEPH"
+    # test = "data\\nf_fourth_edition\\nffs\\0235.txt"
+    # https://runeberg.org/nffs/0041.html # "Service, Robert"
+    # test = "data\\nf_fourth_edition\\nffs\\0041.txt"
+    # test = "data\\nf_fourth_edition\\nffi\\0011.txt"
 
     # print(f"Extracting entries from: {test}")
     # entries, _ = extract_entries_from_page(test, 1, 1, 1)
@@ -257,6 +265,23 @@ if __name__ == '__main__':
 
             volume = volume_path.split('\\')[-1]
             with open(f"data/json/first_ed/{volume}.json", "w", encoding='utf-8') as outfile: 
+                json.dump(all_entries_of_vol, outfile, ensure_ascii=False, indent=2)
+            tot_entries = len(all_entries_of_vol)
+            print(f"({volume}) AMOUNT OF ENTRIES CREATED: {tot_entries}")
+            all_entries_of_vol.clear()
+        except:
+            sys.exit(f"Encountered error in: {page_path}")
+
+    all_entries_of_vol = []
+    entry_nbr = 1
+    for vol_nbr, volume_path in enumerate(get_volumes(FOURTH_ED), start=1):
+        try:
+            for page_path in get_pages_of_volume(volume_path):
+                entries, entry_nbr = extract_entries_from_page(page_path, entry_nbr, vol_nbr, 1)
+                all_entries_of_vol += entries
+
+            volume = volume_path.split('\\')[-1]
+            with open(f"data/json/fourth_ed/{volume}.json", "w", encoding='utf-8') as outfile: 
                 json.dump(all_entries_of_vol, outfile, ensure_ascii=False, indent=2)
             tot_entries = len(all_entries_of_vol)
             print(f"TOTAL AMOUNT OF ENTRIES CREATED: {tot_entries}")
