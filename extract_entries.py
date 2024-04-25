@@ -246,7 +246,8 @@ if __name__ == '__main__':
     # test = "data\\nf_fourth_edition\\nffs\\0235.txt"
     # https://runeberg.org/nffs/0041.html # "Service, Robert"
     # test = "data\\nf_fourth_edition\\nffs\\0041.txt"
-    # test = "data\\nf_fourth_edition\\nffi\\0011.txt"
+
+    # test = "data\\nf_first_edition\\nfat\\1150.txt"
 
     # print(f"Extracting entries from: {test}")
     # entries, _ = extract_entries_from_page(test, 1, 1, 1)
@@ -255,29 +256,29 @@ if __name__ == '__main__':
     
     ###############################
 
+    # all_entries_of_vol = []
+    # entry_nbr = 1
+    # for vol_nbr, volume_path in enumerate(get_volumes(FIRST_ED_TEXT), start=1):
+    #     try:
+    #         for page_path in get_pages_of_volume(volume_path):
+    #             entries, entry_nbr = extract_entries_from_page(page_path, entry_nbr, vol_nbr, 1)
+    #             all_entries_of_vol += entries
+
+    #         volume = volume_path.split('\\')[-1]
+    #         with open(f"data/json/first_ed/{volume}.json", "w", encoding='utf-8') as outfile: 
+    #             json.dump(all_entries_of_vol, outfile, ensure_ascii=False, indent=2)
+    #         tot_entries = len(all_entries_of_vol)
+    #         print(f"({volume}) AMOUNT OF ENTRIES CREATED: {tot_entries}")
+    #         all_entries_of_vol.clear()
+    #     except:
+    #         sys.exit(f"Encountered error in: {page_path}")
+
     all_entries_of_vol = []
     entry_nbr = 1
-    for vol_nbr, volume_path in enumerate(get_volumes(FIRST_ED), start=1):
+    for vol_nbr, volume_path in enumerate(get_volumes(FOURTH_ED_TEXT), start=1):
         try:
             for page_path in get_pages_of_volume(volume_path):
-                entries, entry_nbr = extract_entries_from_page(page_path, entry_nbr, vol_nbr, 1)
-                all_entries_of_vol += entries
-
-            volume = volume_path.split('\\')[-1]
-            with open(f"data/json/first_ed/{volume}.json", "w", encoding='utf-8') as outfile: 
-                json.dump(all_entries_of_vol, outfile, ensure_ascii=False, indent=2)
-            tot_entries = len(all_entries_of_vol)
-            print(f"({volume}) AMOUNT OF ENTRIES CREATED: {tot_entries}")
-            all_entries_of_vol.clear()
-        except:
-            sys.exit(f"Encountered error in: {page_path}")
-
-    all_entries_of_vol = []
-    entry_nbr = 1
-    for vol_nbr, volume_path in enumerate(get_volumes(FOURTH_ED), start=1):
-        try:
-            for page_path in get_pages_of_volume(volume_path):
-                entries, entry_nbr = extract_entries_from_page(page_path, entry_nbr, vol_nbr, 1)
+                entries, entry_nbr = extract_entries_from_page(page_path, entry_nbr, vol_nbr, 4)
                 all_entries_of_vol += entries
 
             volume = volume_path.split('\\')[-1]
