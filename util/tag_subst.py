@@ -1,4 +1,4 @@
-import re
+import regex as re
 
 def __html_refs_repl(m):
     ref = m.group(4)

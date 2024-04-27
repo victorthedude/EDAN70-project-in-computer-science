@@ -1,5 +1,6 @@
 import regex as re
-from local_data_handler import *
+from util.local_data_handler import *
+from util.text_handler import find_members_of_family
 
 def remove_unrecognized_tags(text): # Prune additional remaining tags that were not detected during scraping
     pattern = r'<\/?([^>bi]+)>' # ex. prunes: span tag from "<b>Abel de Pujol</b> [dö pysjåll], <span class="sp">Alexandre"
@@ -74,21 +75,6 @@ def search_text_file(file_path): # Check results, before removing
 
 # def remove_header_multiline(text): # Some OCR's wrongly include the page numbers and word-range from the top margin
 #     return re.sub(r'^\d+\n+.+\n+\d+$', '', text, count=1, flags=re.MULTILINE)
-
-NAME = r"(?:\(?\p{Lu}\p{Ll}*\)?[ \t]?)"
-PARTICLE = r"(?:\(?\p{Lu}?\p{Ll}*\)?[ \t]?)"
-FIRST_ED_PATTERN = rf"^\d+\.[ \t]{NAME}{PARTICLE}*,[ \t]{NAME}{PARTICLE}*$"
-FOURTH_ED_PATTERN = rf"{NAME}{PARTICLE}*,[ \t]\d+\.[ \t]{NAME}{PARTICLE}*"
-FAMILY_MEMBER_PATTERN = re.compile(FIRST_ED_PATTERN + r"|" + FOURTH_ED_PATTERN)
-def find_members_of_family(index):
-    matches = []
-    for headword in index:
-        match = re.search(FAMILY_MEMBER_PATTERN, headword)
-        if match:
-            matches.append(match.group(0))
-    # if matches:
-    #     print(matches)
-    return matches
 
 def prune_text_file(file_path, remove):
     content = get_page_raw_content(file_path)

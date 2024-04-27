@@ -4,7 +4,7 @@ import re
 from urllib.parse import urljoin
 import os
 import pathlib
-from tag_subst import subst_HTML_tags
+from util.tag_subst import subst_HTML_tags
 
 URL = 'https://runeberg.org/nf/'
 

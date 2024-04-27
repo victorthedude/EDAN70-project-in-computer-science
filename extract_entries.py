@@ -1,8 +1,9 @@
-from local_data_handler import *
+from util.local_data_handler import *
 import regex as re
 from Levenshtein import ratio as levenshtein_ratio
 import json
 import sys
+from util.text_handler import remove_tags, normalize_text, split_even, find_members_of_family
 
 def get_headword_from_bold(string):
     # Check if string contains <b> tag
@@ -14,11 +15,6 @@ def get_headword_from_bold(string):
 
 def check_italics_tag(string):
     return
-
-def split_even(text) -> list[str]:
-    res = re.sub("\s+", " ", text)
-    res = list(filter(bool, [word.strip(' ,.') for word in res.split(' ')]))
-    return res
 
 HEADWORD_OFFSET = 1
 def get_headword_from_index(text: str, index: list[str]):
@@ -45,9 +41,6 @@ def get_headword_from_index(text: str, index: list[str]):
         return longest
 
     return None
-
-def normalize_text(text):
-    return re.sub(r"[.,' \t]", "", text)
 
 MIN_SCORE_THRESHOLD = 0.7
 def get_headword_by_score(text, index):
@@ -85,9 +78,6 @@ def get_headword_by_score(text, index):
         # print(f"(SCORE)   Chose '{headword}' for '{text}'")
 
     return headword
-
-def remove_tags(string): # remove parenthesis+content within parenthesis as well?
-    return re.sub(r'<\/?[^>]+>|\[[^\]]+\]', '', string) # removes ALL tags + phonetics fluff?.
 
 def extract_headword(text, index):
     first_line = re.search(r'^(.+)\n?', text).group(1)
@@ -152,22 +142,6 @@ def extract_family_member(text, family_members):
         return member
     
     return None
-
-
-NAME = r"(?:\(?\p{Lu}\p{Ll}*\)?[ \t]?)"
-PARTICLE = r"(?:\(?\p{Lu}?\p{Ll}*\)?[ \t]?)"
-FIRST_ED_PATTERN = rf"^\d+\.[ \t]{NAME}{PARTICLE}*,[ \t]{NAME}{PARTICLE}*$"
-FOURTH_ED_PATTERN = rf"{NAME}{PARTICLE}*,[ \t]\d+\.[ \t]{NAME}{PARTICLE}*"
-FAMILY_MEMBER_PATTERN = re.compile(FIRST_ED_PATTERN + r"|" + FOURTH_ED_PATTERN)
-def find_members_of_family(index):
-    matches = []
-    for headword in index:
-        match = re.search(FAMILY_MEMBER_PATTERN, headword)
-        if match:
-            matches.append(match.group(0))
-    # if matches:
-    #     print(matches)
-    return matches
 
 def extract_entries_from_page(page_path, current_entry_nbr, volume_nbr, edition):
     index, content = get_page_index_and_content(page_path)

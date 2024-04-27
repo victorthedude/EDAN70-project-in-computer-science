@@ -1,4 +1,4 @@
-from local_data_handler import *
+from util.local_data_handler import *
 
 E1_A = 0
 E1_B = 5124

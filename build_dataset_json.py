@@ -1,11 +1,7 @@
-from local_data_handler import *
-from letter_dicts import FIRST_ED_LETTER_DICT, FOURTH_ED_LETTER_DICT, LETTERS
+from util.local_data_handler import *
+from util.letter_dicts import FIRST_ED_LETTER_DICT, FOURTH_ED_LETTER_DICT, LETTERS
 import random
 
-first_ed = load_json("test/data/first_ed_potential_people.json")
-fourth_ed = load_json("test/data/fourth_ed_potential_people.json")
-
-DATASET_SAVE_LOC = "data/json/training/dataset.json"
 LETTER_LIMIT = 10
 
 def sample_entries_from_letter(letter_dict, letter, n=10):
@@ -19,14 +15,28 @@ def sample_entries_from_letter(letter_dict, letter, n=10):
     entries = list(map(convert_entry, entries))
     return entries
 
-def build_balanced_random(save_loc, n=10):
+def build_balanced_random(save_loc, n=10, training_data=None):
     entries = []
-    for letter in LETTERS:
-        entries += sample_entries_from_letter(FIRST_ED_LETTER_DICT, letter, n=n)
-        entries += sample_entries_from_letter(FOURTH_ED_LETTER_DICT, letter, n=n)
+    if training_data:
+        training_texts = set([entry['text'] for entry in training_data]) # make sure there is no duplicate text in training and validation data
+        for letter in LETTERS:
+            e1s = [entry for entry in sample_entries_from_letter(FIRST_ED_LETTER_DICT, letter, n=n) if entry['text'] not in training_texts]
+            e2s = [entry for entry in sample_entries_from_letter(FOURTH_ED_LETTER_DICT, letter, n=n) if entry['text'] not in training_texts]
+            while len(e1s) < n and len(e2s) < n:
+                if len(e1s) < n:
+                    e1s = [entry for entry in sample_entries_from_letter(FIRST_ED_LETTER_DICT, letter, n=n) if entry['text'] not in training_texts]
+                if len(e2s) < n:
+                    e2s = [entry for entry in sample_entries_from_letter(FOURTH_ED_LETTER_DICT, letter, n=n) if entry['text'] not in training_texts]
+            entries += e1s
+            entries += e2s
+    else:
+        for letter in LETTERS:
+            entries += sample_entries_from_letter(FIRST_ED_LETTER_DICT, letter, n=n)
+            entries += sample_entries_from_letter(FOURTH_ED_LETTER_DICT, letter, n=n)
 
     with open(save_loc, 'w', encoding='utf-8') as outfile:
         json.dump(entries, outfile, ensure_ascii=False, indent=2)
+
 
 def count_person_entries(dataset):
     count = 0
@@ -37,8 +47,15 @@ def count_person_entries(dataset):
     print(f"Non-Persons Entries: {len(dataset)-count}")
     return count, len(dataset)-count
 
-def manual_set_labels(dataset_json_path, start_index=-1):
+def manual_set_labels(dataset_json_path):
     dataset = load_json(dataset_json_path)
+    person_count, non_person_count = count_person_entries(dataset)
+
+    start_index = 0
+    for entry in dataset:
+        if 'stop_index' in entry.keys():
+            start_index = entry['stop_index']
+
     if start_index > 0:
         del dataset[start_index]['stop_index']
         dataset_enumerator = enumerate(dataset[start_index:], start=start_index)
@@ -51,6 +68,8 @@ def manual_set_labels(dataset_json_path, start_index=-1):
         prompt = input("Is Person: ")
         if prompt == '1':
             dataset[i]['label'] = 1
+            person_count += 1
+            non_person_count -= 1
         elif prompt == 'pause' or prompt == 'break' or prompt == 'stop' or prompt == 'save' or prompt == 'x':
             print(f"STOPPED AT: {i}")
 
@@ -58,7 +77,11 @@ def manual_set_labels(dataset_json_path, start_index=-1):
 
             with open(dataset_json_path, 'w', encoding='utf-8') as outfile:
                 json.dump(dataset, outfile, ensure_ascii=False, indent=2)
-            break
+            return
+        
+        print(f"Person Entries: {person_count}")
+        print(f"Non-Persons Entries: {non_person_count}")
+
     with open(dataset_json_path, 'w', encoding='utf-8') as outfile:
         json.dump(dataset, outfile, ensure_ascii=False, indent=2)
 
@@ -159,7 +182,14 @@ def manual_add_random_entry_from_json(dataset_json_path, first_ed_json, fourth_e
     with open(dataset_json_path, 'w', encoding='utf-8') as outfile:
         json.dump(dataset, outfile, ensure_ascii=False, indent=2)
 
-# build_balanced_random(DATASET_SAVE_LOC, n=LETTER_LIMIT)
+
+DATASET_SAVE_LOC = "data/json/training/dataset_1_validation.json"
+# prompt = input("Create new dataset? (y/n): ")
+# if prompt == "y":
+#     build_balanced_random(DATASET_SAVE_LOC, n=2, training_data=load_json("data/json/training/dataset_1_training.json"))
+#     manual_set_labels(DATASET_SAVE_LOC)
+# else:
+#     manual_set_labels(DATASET_SAVE_LOC)
 # count_persons(DATASET_SAVE_LOC)
 
 # build_balanced_random("data/json/training/test_dataset.json", n=4)
@@ -169,10 +199,6 @@ def manual_add_random_entry_from_json(dataset_json_path, first_ed_json, fourth_e
 
 # json1 = load_json("test/data/first_ed_potential_people.json")
 # json2 = load_json("test/data/fourth_ed_potential_people.json")
-
-json1 = load_json("data/json/first_ed/first_ed.json")
-json2 = load_json("data/json/fourth_ed/fourth_ed.json")
-
-manual_add_random_entry_from_json("data/json/training/test_dataset.json", json1, json2)
-
-# first_ed_people_letter_dict = 
+# json1 = load_json("data/json/first_ed/first_ed.json")
+# json2 = load_json("data/json/fourth_ed/fourth_ed.json")
+# manual_add_random_entry_from_json("data/json/training/test_dataset.json", json1, json2)
