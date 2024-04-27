@@ -6,6 +6,11 @@ test
 test_data
 *sample.json
 uggleupplagan-main
+*.hf
+
+# ignore local kb-bert model
+config.json
+pytorch_model.bin
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
