@@ -42,17 +42,17 @@ def extract_potential_people(json, check_text=True):
                     candidates.append(new_entry)
     return candidates
 
-if __name__ == '__main__':
-    all_entries = []
-    for json_vol in get_jsons_of_dir(FIRST_ED_JSON):
-        content = load_json(json_vol)
-        # people = extract_family_member_entries(content)
-        people = extract_potential_people(content)
-        all_entries += people
-        print(f" {json_vol} ... DONE")
+# if __name__ == '__main__':
+#     all_entries = []
+#     for json_vol in get_jsons_of_dir(FIRST_ED_JSON):
+#         content = load_json(json_vol)
+#         # people = extract_family_member_entries(content)
+#         people = extract_potential_people(content)
+#         all_entries += people
+#         print(f" {json_vol} ... DONE")
 
-    with open(f"data/json/training/first_ed_families.json", "w", encoding="utf-8") as outfile:
-        json.dump(all_entries, outfile, ensure_ascii=False, indent=2)
+#     with open(f"data/json/training/first_ed_families.json", "w", encoding="utf-8") as outfile:
+#         json.dump(all_entries, outfile, ensure_ascii=False, indent=2)
 
     # all_entries = []
     # for json_vol in get_json_vols_of_edition(FIRST_ED_JSON):
