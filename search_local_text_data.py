@@ -77,7 +77,7 @@ def search_text_file(file_path): # Check results, before removing
 #     return re.sub(r'^\d+\n+.+\n+\d+$', '', text, count=1, flags=re.MULTILINE)
 
 def prune_text_file(file_path, remove):
-    content = get_page_raw_content(file_path)
+    content = get_file_raw_content(file_path)
     content = re.sub(re.escape(remove), "", content)
     with open(file_path, 'w', encoding='utf-8') as f:
         f.write(content)

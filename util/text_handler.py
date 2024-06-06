@@ -7,8 +7,8 @@ FOURTH_ED_PATTERN = rf"{NAME}{PARTICLE}*,[ \t]\d+\.[ \t]{NAME}{PARTICLE}*"
 FAMILY_MEMBER_PATTERN = re.compile(FIRST_ED_PATTERN + r"|" + FOURTH_ED_PATTERN)
 FULL_NAME_PATTERN = re.compile(rf"^{NAME}{PARTICLE}*,[ \t]{NAME}{PARTICLE}*")
 
-def remove_tags(string): # remove parenthesis+content within parenthesis as well?
-    return re.sub(r'<\/?[^>]+>|\[[^\]]+\]', '', string) # removes ALL tags + phonetics fluff?.
+def remove_tags(string):
+    return re.sub(r'<\/?[^>]+>|\[[^\]]+\]', '', string) # removes ALL tags + phonetics fluff
 
 def normalize_text(text): # remove spaceing + punctuation + aprostrophes
     return re.sub(r"[.,' \t]", "", text)

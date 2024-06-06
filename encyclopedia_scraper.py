@@ -7,6 +7,7 @@ import pathlib
 from util.tag_subst import subst_HTML_tags
 
 URL = 'https://runeberg.org/nf/'
+SESSION = requests.Session()
 
 def fetch_edition_volume_links(soup: BeautifulSoup):
     # Fetch the <table> element that holds the links to the volumes for each edition
@@ -30,7 +31,7 @@ def fetch_edition_volume_links(soup: BeautifulSoup):
 
 def fetch_volume_page_links(volume_link):
     volume_url = urljoin(URL, volume_link)
-    response = requests.get(volume_url)
+    response = SESSION.get(volume_url)
     if response.status_code != 200:
         print(f"Failed to retrieve the webpage ({volume_url}): HTTP {response.status_code}")
     else:
@@ -51,7 +52,7 @@ def fetch_volume_page_links(volume_link):
 def fetch_page_content(volume_link, page_link):
     volume_url = urljoin(URL, volume_link)
     page_url = urljoin(volume_url, page_link)
-    response = requests.get(page_url)
+    response = SESSION.get(page_url)
     response.encoding = 'utf-8'
     if response.status_code != 200:
         print(f"Failed to retrieve the webpage ({page_url}): HTTP {response.status_code}")
@@ -68,12 +69,12 @@ def fetch_page_content(volume_link, page_link):
         regex = entries_re + start_re + content_re + end_re
         match = re.search(regex, response.text, re.DOTALL)
         # 2. Extract entries and content
-        entries = match.group(1).strip(' \n')
-        entries = re.sub(r'\s-\s', '- ', entries)
+        index = match.group(1).strip(' \n')
+        index = re.sub(r'\s-\s', '- ', index)
         text = match.group(2)
         text = subst_HTML_tags(text)
         text = text.strip(' \n')
-        return entries, text
+        return index, text
 
 def download_edition(edition_dir_path, edition_vols: dict):
     for vol_link, page_links in edition_vols.items():
@@ -100,7 +101,7 @@ def main():
         print("Directories already exist: the encyclopedia has already been fetched?")
         return
 
-    response = requests.get(URL)
+    response = SESSION.get(URL)
     # Check if the request was successful
     if response.status_code != 200:
         print(f"Failed to retrieve the webpage ({URL}): HTTP {response.status_code}")

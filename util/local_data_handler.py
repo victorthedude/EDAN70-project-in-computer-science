@@ -13,8 +13,8 @@ def get_pages_of_volume(volume_path):
     pages = [f.path for f in os.scandir(volume_path) if f.path.endswith('.txt')]
     return pages
 
-def get_page_raw_content(page_path):
-    with open(page_path, 'r', encoding='utf-8-sig') as f: # utf-8-sig automatically handles any UTF-8 BOM's at the beginning of files
+def get_file_raw_content(file_path):
+    with open(file_path, 'r', encoding='utf-8-sig') as f: # utf-8-sig automatically handles any UTF-8 BOM's at the beginning of files
         content = f.read()
     return content
 
