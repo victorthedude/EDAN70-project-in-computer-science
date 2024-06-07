@@ -1,6 +1,12 @@
-Repository for a Computer Science project course (course code: EDAN70) at Lund Tekniska Högskola (LTH).
+Repository for a Computer Science project course (course code: EDAN70) at Lund Tekniska Högskola (LTH). 
 
-## Requirements
+Accompanying paper: [Identifying Articles About People in the "Nordisk Familjebok" Encyclopedia](Identifying_Person_Articles_in_Nordisk_Familjebok.pdf)
+
+**Abstract**: 
+> This paper presents an attempt to classify entries from the Swedish "Nordisk Familjebok" encyclopedia into those about a "Person" or "Non-Person". The encyclopedia, first published in 1876, is available online through Project Runeberg. We implemented methods for scraping the encyclopedia and extracting and classifying the entries, utilizing the Swedish KB-BERT model, based on BERT, to create contextual word embeddings. We find that the biggest challenge lies in extracting entries from inaccurate and inconsistent text. Our classifier (logistic regression) however, achieves promising results with relatively minimal training.
+
+
+### Requirements
 In order to reproduce our findings, one first need to:
 
 1. Install required Python packages ([requirements.txt](requirements.txt)):
@@ -24,17 +30,17 @@ pip install -r requirements.txt
 
 
 
-## Data Files
+### Data Files
 
-### Entry Extraction
+#### Entry Extraction
 The results of [`2_extract_entries.py`](2_extract_entries.py) are available at:
 - [`data/json/first_ed/...`](data/json/first_ed/)
 - [`data/json/fourth_ed/...`](data/json/fourth_ed/)
 
 but can easily be reproduced by simply executing [`2_extract_entries.py`](2_extract_entries.py), provided that [`nf.zip`](data/nf.zip) has been properly unpacked.
 
-### Training
+#### Training
 The training and validation data for [`3_train_classifier.ipynb`](3_train_classifier.ipynb) is available at: [`data/json/training/...`](data/json/training/)
 
-### Classifying the Encyclopedia
+#### Classifying the Encyclopedia
 The results of the classification ([`4_classify_encyclopedia.ipynb`](4_classify_encyclopedia.ipynb)) is available at: [`data/json/classification/...`](data/json/classification/)
