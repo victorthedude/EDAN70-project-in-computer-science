@@ -196,6 +196,52 @@ def extract_entries_from_page(page_path, current_entry_nbr, volume_nbr, edition)
     return entries, current_entry_nbr
 
 if __name__ == '__main__':
+    first_edition_entries = []
+    entry_nbr = 1
+    for vol_nbr, volume_path in enumerate(get_volumes(FIRST_ED_TEXT), start=1):
+        try:
+            all_entries_of_vol = []
+            for page_path in get_pages_of_volume(volume_path):
+                entries, entry_nbr = extract_entries_from_page(page_path, entry_nbr, vol_nbr, 1)
+                all_entries_of_vol += entries
+                first_edition_entries += entries
+
+            volume = volume_path.split('\\')[-1]
+            with open(f"data/json/first_ed/volumes/{volume}.json", "w", encoding='utf-8') as outfile: 
+                json.dump(all_entries_of_vol, outfile, ensure_ascii=False, indent=2)
+            tot_entries = len(all_entries_of_vol)
+            print(f"({volume}) Amount of entries created: {tot_entries}")
+        except:
+            sys.exit(f"Encountered error in: {page_path}")
+
+    print(f"TOTAL AMOUNT OF ENTRIES CREATED: {len(first_edition_entries)}")
+    with open("data/json/first_ed/first_ed.json", "w", encoding='utf-8') as outfile: 
+        json.dump(first_edition_entries, outfile, ensure_ascii=False, indent=2)
+
+    fourth_edition_entries = []
+    entry_nbr = 1
+    for vol_nbr, volume_path in enumerate(get_volumes(FOURTH_ED_TEXT), start=1):
+        try:
+            all_entries_of_vol = []
+            for page_path in get_pages_of_volume(volume_path):
+                entries, entry_nbr = extract_entries_from_page(page_path, entry_nbr, vol_nbr, 4)
+                all_entries_of_vol += entries
+                fourth_edition_entries += entries
+
+            volume = volume_path.split('\\')[-1]
+            with open(f"data/json/fourth_ed/volumes/{volume}.json", "w", encoding='utf-8') as outfile: 
+                json.dump(all_entries_of_vol, outfile, ensure_ascii=False, indent=2)
+            tot_entries = len(all_entries_of_vol)
+            print(f"({volume}) Amount of entries created: {tot_entries}")
+        except:
+            sys.exit(f"Encountered error in: {page_path}")
+
+    print(f"TOTAL AMOUNT OF ENTRIES CREATED: {len(fourth_edition_entries)}")
+    with open("data/json/fourth_ed/fourth_ed.json", "w", encoding='utf-8') as outfile: 
+        json.dump(fourth_edition_entries, outfile, ensure_ascii=False, indent=2)
+
+    ###############################
+
     # test = 'data\\nf_first_edition\\nfaf\\0745.txt'  # missing index, but has bold tags
     # test = 'data\\nf_fourth_edition\\nffp\\0015.txt' # complete index but different spelling/format of headwords in index and in text, no bold tags
     # test = 'data\\nf_first_edition\\nfaa\\0024.txt'  # straight-forward; complete index + bold tags
@@ -228,38 +274,5 @@ if __name__ == '__main__':
     # with open("sample.json", "w", encoding='utf-8') as outfile: 
     #     json.dump(entries, outfile, ensure_ascii=False, indent=2)
     
-    ###############################
+    
 
-    # all_entries_of_vol = []
-    # entry_nbr = 1
-    # for vol_nbr, volume_path in enumerate(get_volumes(FIRST_ED_TEXT), start=1):
-    #     try:
-    #         for page_path in get_pages_of_volume(volume_path):
-    #             entries, entry_nbr = extract_entries_from_page(page_path, entry_nbr, vol_nbr, 1)
-    #             all_entries_of_vol += entries
-
-    #         volume = volume_path.split('\\')[-1]
-    #         with open(f"data/json/first_ed/{volume}.json", "w", encoding='utf-8') as outfile: 
-    #             json.dump(all_entries_of_vol, outfile, ensure_ascii=False, indent=2)
-    #         tot_entries = len(all_entries_of_vol)
-    #         print(f"({volume}) AMOUNT OF ENTRIES CREATED: {tot_entries}")
-    #         all_entries_of_vol.clear()
-    #     except:
-    #         sys.exit(f"Encountered error in: {page_path}")
-
-    all_entries_of_vol = []
-    entry_nbr = 1
-    for vol_nbr, volume_path in enumerate(get_volumes(FOURTH_ED_TEXT), start=1):
-        try:
-            for page_path in get_pages_of_volume(volume_path):
-                entries, entry_nbr = extract_entries_from_page(page_path, entry_nbr, vol_nbr, 4)
-                all_entries_of_vol += entries
-
-            volume = volume_path.split('\\')[-1]
-            with open(f"data/json/fourth_ed/{volume}.json", "w", encoding='utf-8') as outfile: 
-                json.dump(all_entries_of_vol, outfile, ensure_ascii=False, indent=2)
-            tot_entries = len(all_entries_of_vol)
-            print(f"TOTAL AMOUNT OF ENTRIES CREATED: {tot_entries}")
-            all_entries_of_vol.clear()
-        except:
-            sys.exit(f"Encountered error in: {page_path}")
