@@ -14,8 +14,8 @@ In order to reproduce our findings, one first need to:
 pip install -r requirements.txt
 ```
 2. For brevity, a [`nf.zip`](data/nf.zip) file is provided containing the results of the scraping by [`1_encyclopedia_scraper.py`](1_encyclopedia_scraper.py). Unpack it within the [data](data) directory such that the texts are available as:
-- `data/nf_first_edition/...`
-- `data/nf_fourth_edition/...`
+- `data/nf_first_edition/`
+- `data/nf_fourth_edition/`
 
     Of course, one can perform the scraping if desired, but be warned that this might take a very long time.
 
@@ -23,9 +23,9 @@ pip install -r requirements.txt
 
     Alternatively, KB-BERT can be run via the Hugging Face servers, doing this would require slight modification of [`3_train_classifier.ipynb`](3_train_classifier.ipynb).
 
-4. (Optional, but highly recommended) Creating embeddings for all of the entries is *very* time consuming. If one wants to exactly reproduce our results, then a lot of time can be saved by downloading the embeddings we had for both the training and the encyclopedia classification from [Google Drive](https://drive.google.com/drive/folders/1ZXSYUmf82o3Nu84I2FmWAz6plqRUZw_M?usp=sharing). Unpack and place the files such that they are available as:
-- `data/json/classification/encyclopedia_embeds.hf/...`
-- `data/json/training/ver1/dataset_1_embeds.hf/...`
+4. (Optional, but highly recommended) Creating embeddings for all of the entries is potentially *very* time consuming. If one wants to exactly reproduce our results, then a lot of time can be saved by downloading the embeddings we had for both the training and the encyclopedia classification from [Google Drive](https://drive.google.com/drive/folders/1ZXSYUmf82o3Nu84I2FmWAz6plqRUZw_M?usp=sharing). Unpack and place the files such that they are available as:
+- `data/json/classification/encyclopedia_embeds.hf/`
+- `data/json/training/ver1/dataset_1_embeds.hf/`
 
 
 
